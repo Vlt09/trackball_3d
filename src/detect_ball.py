@@ -2,6 +2,65 @@ import cv2 as cv
 import cv2
 
 
+max_value = 255
+max_value_H = 360//2
+low_H = 0
+low_S = 0
+low_V = 0
+high_H = max_value_H
+high_S = max_value
+high_V = max_value
+window_capture_name = 'Video Capture'
+window_detection_name = 'Object Detection'
+low_H_name = 'Low H'
+low_S_name = 'Low S'
+low_V_name = 'Low V'
+high_H_name = 'High H'
+high_S_name = 'High S'
+high_V_name = 'High V'
+
+def on_low_H_thresh_trackbar(val):
+    global low_H
+    global high_H
+    low_H = val
+    low_H = min(high_H-1, low_H)
+    cv.setTrackbarPos(low_H_name, window_detection_name, low_H)
+
+def on_high_H_thresh_trackbar(val):
+    global low_H
+    global high_H
+    high_H = val
+    high_H = max(high_H, low_H+1)
+    cv.setTrackbarPos(high_H_name, window_detection_name, high_H)
+
+def on_low_S_thresh_trackbar(val):
+    global low_S
+    global high_S
+    low_S = val
+    low_S = min(high_S-1, low_S)
+    cv.setTrackbarPos(low_S_name, window_detection_name, low_S)
+
+def on_high_S_thresh_trackbar(val):
+    global low_S
+    global high_S
+    high_S = val
+    high_S = max(high_S, low_S+1)
+    cv.setTrackbarPos(high_S_name, window_detection_name, high_S)
+
+def on_low_V_thresh_trackbar(val):
+    global low_V
+    global high_V
+    low_V = val
+    low_V = min(high_V-1, low_V)
+    cv.setTrackbarPos(low_V_name, window_detection_name, low_V)
+
+def on_high_V_thresh_trackbar(val):
+    global low_V
+    global high_V
+    high_V = val
+    high_V = max(high_V, low_V+1)
+    cv.setTrackbarPos(high_V_name, window_detection_name, high_V)
+
 def setLowBounds(bounds: list, value: int):
     bounds[0] = value
 
@@ -9,58 +68,47 @@ def setHighBounds(bounds: list, value: int):
     bounds[1] = value
 
 def resetBounds(bounds: list):
-    bounds = [0, 255]
+    bounds[0] = 0
+    bounds[1] = 255
 
-"""
-This function creates trackbars allowing the user to find the values 
-for which only the ball is visible on the binary image.
-"""
-def setupCalibrationParameters(windowsName: str, redBounds: list, blueBounds: list, greenBounds: list):
+def setupCalibrationParameters(windowsName: str):
+    cv.createTrackbar(low_H_name, window_detection_name , low_H, max_value_H, on_low_H_thresh_trackbar)
+    cv.createTrackbar(high_H_name, window_detection_name , high_H, max_value_H, on_high_H_thresh_trackbar)
+    cv.createTrackbar(low_S_name, window_detection_name , low_S, max_value, on_low_S_thresh_trackbar)
+    cv.createTrackbar(high_S_name, window_detection_name , high_S, max_value, on_high_S_thresh_trackbar)
+    cv.createTrackbar(low_V_name, window_detection_name , low_V, max_value, on_low_V_thresh_trackbar)
+    cv.createTrackbar(high_V_name, window_detection_name , high_V, max_value, on_high_V_thresh_trackbar)
 
-    cv2.createTrackbar('Low red', windowsName, 0, 255, lambda x: setLowBounds(redBounds, x))
-    cv2.createTrackbar('High Red', windowsName, 0, 255, lambda x: setHighBounds(redBounds, x))
-    cv2.createTrackbar('Low green', windowsName, 0, 255, lambda x: setLowBounds(greenBounds, x))
-    cv2.createTrackbar('High green', windowsName, 0, 255, lambda x: setHighBounds(greenBounds, x))
-    cv2.createTrackbar('Low blue', windowsName, 0, 255, lambda x: setLowBounds(blueBounds, x))
-    cv2.createTrackbar('High blue', windowsName, 0, 255, lambda x: setHighBounds(blueBounds, x))
-
-"""
-This function is executed first and is used to calibrate the application. 
-It is the step where the user must indicate where the ball is to be tracked and sets the threshold 
-so that only the white ball is seen in grayscale.
-"""
 def appCalibration():
 
-    redBounds = [0, 255]
-    greenBounds = [0, 255]
-    blueBounds = [0, 255]
-    windowsName = 'Parameter setting'
-
-    # Open the default camera
     cam = cv2.VideoCapture(0)
 
-    # Get the default frame width and height
-    frame_width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    if not cam.isOpened():
+        print("Erreur : Impossible d'ouvrir la vidéo.")
+        return
 
-    cv2.namedWindow(windowsName)
+    cv2.namedWindow(window_capture_name)
+    cv2.namedWindow(window_detection_name)
 
-    setupCalibrationParameters(windowsName, redBounds, blueBounds, greenBounds)
-
+    setupCalibrationParameters(window_detection_name)
 
     while True:
         ret, frame = cam.read()
-        blurred = cv2.GaussianBlur(frame, (11, 11), 0)
-
-        frame2 = cv.inRange(blurred, (redBounds[0], greenBounds[0], blueBounds[0]), (redBounds[1], greenBounds[1], blueBounds[1]))
-
-        cv2.imshow('Camera 2', blurred)
-        cv2.imshow('Camera', frame2)
-
-        if cv2.waitKey(1) == ord('q'):
+        if frame is None:
             break
-
+        frame_HSV = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+        frame_threshold = cv.inRange(frame_HSV, (low_H, low_S, low_V), (high_H, high_S, high_V))
+        
+        
+        cv.imshow(window_capture_name, frame)
+        cv.imshow(window_detection_name, frame_threshold)
+        
+        key = cv.waitKey(30)
+        if key == ord('q') or key == 27:
+            break
+    
     cam.release()
     cv2.destroyAllWindows()
 
-    return (redBounds[0], greenBounds[0], blueBounds[0]), (redBounds[1], greenBounds[1], blueBounds[1])
+    return (low_H, low_S, low_V), (high_H, high_S, high_V)
+
