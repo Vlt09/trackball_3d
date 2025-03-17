@@ -86,11 +86,11 @@ def main(fifo_file):
                 data = [0, 0, 0] # translation vector
 
                 if abs(contours[0]["center"][0] - prev_x) > 7:
-                    data[0] = contours[0]["center"][0] - center[0]  # Shift the coordinates so that (0, 0) is at the center of the image
+                    data[0] = (w - contours[0]["center"][0]) - center[0]  # Shift the coordinates so that (0, 0) is at the center of the image
                     prev_x = contours[0]["center"][0]
 
                 if abs(contours[0]["center"][1] - prev_y) > 7:
-                    data[1] = contours[0]["center"][1] - center[1]
+                    data[1] = (h - contours[0]["center"][1]) - center[1]
                     prev_y = contours[0]["center"][1]
 
                 if abs(contours[0]["area"] - current_area) > delta_oscillation_min:
@@ -100,11 +100,11 @@ def main(fifo_file):
                     current_area = contours[0]["area"]
 
 
-                data = data[0] / w, data[1] / h , data[2] / 100
-                # fifo_file.write(str(data[0]) + "," + str(data[1]) + "," + str(data[2]) + "\n")
-                # fifo_file.flush()
-                if (data != (0, 0, 0)):
-                    print(data[1])
+                data = (data[0]) / w, data[1] / h , data[2] / 100
+                fifo_file.write(str(data[0]) + "," + str(data[1]) + "," + str(data[2]) + "\n")
+                fifo_file.flush()
+                # if (data[1] != 0):
+                #     print(data[1])
 
         cv2.circle(imgContours, center, 5, (0, 0, 255), -1)
 
@@ -127,7 +127,7 @@ subprocess.run("wsl rm /home/valentin/m2/geometrie_projective/opengl_scene/fifo_
 
 with open(FILE_PATH, "w") as f:
     wsl_command = "wsl /home/valentin/m2/geometrie_projective/opengl_scene/bin/src_main"
-    # subprocess.Popen(wsl_command, shell=True)
+    subprocess.Popen(wsl_command, shell=True)
 
     main(f)
 
